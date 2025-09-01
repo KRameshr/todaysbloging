@@ -1,5 +1,3 @@
-// className="[&>tr>td]:px-4 [&>tr>td]:py-2"
-
 import React, { useEffect, useState } from "react";
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";

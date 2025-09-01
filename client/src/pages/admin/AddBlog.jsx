@@ -6,7 +6,7 @@ import { assets, blogCategories } from "../../assets/assets";
 import { useAppContext } from "../../context/AppContext";
 
 const AddBlog = () => {
-  const { axios } = useAppContext();
+  const { axios, fetchBlogs } = useAppContext(); // ✅ bring fetchBlogs here
 
   const [image, setImage] = useState(null);
   const [title, setTitle] = useState("");
@@ -71,6 +71,11 @@ const AddBlog = () => {
       const { data } = await axios.post("/api/blog/add", formData);
       if (data.success) {
         toast.success(data.message);
+
+        // ✅ refresh blog list immediately
+        fetchBlogs();
+
+        // reset form
         setImage(null);
         setTitle("");
         setSubTitle("");

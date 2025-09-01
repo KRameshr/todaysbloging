@@ -11,6 +11,9 @@ import Login from "./components/admin/Login";
 import "quill/dist/quill.snow.css";
 import { Toaster } from "react-hot-toast";
 import { useAppContext } from "./context/AppContext";
+import About from "./components/About";
+import Contact from "./components/Contact";
+import PrivacyPolicy from "./components/Privacypolicy";
 
 const App = () => {
   const { token } = useAppContext();
@@ -26,6 +29,9 @@ const App = () => {
           <Route path="listblog" element={<ListBlog />} />
           <Route path="comments" element={<Comment />} />
         </Route>
+        <Route path="/about" element={<About />} />{" "}
+        <Route path="/contact" element={<Contact />} />
+        <Route path="/privacy-policy" element={<PrivacyPolicy />} />
       </Routes>
     </div>
   );

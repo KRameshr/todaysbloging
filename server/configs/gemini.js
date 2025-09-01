@@ -13,23 +13,28 @@ async function main(prompt) {
         temperature: 0.7, // Balanced creativity
       },
     });
-
     const detailedPrompt = `
 Write a professional, theory-rich blog article on the topic: "${prompt}".
 
-Guidelines:
-- Use a formal and informative tone, suitable for an educated audience (e.g., tech professionals, researchers, or policy analysts).
-- Structure the article like a published editorial or research-backed essay.
-- Minimum length: 1000+ words.
-- Begin with a strong, engaging introduction that defines the topic and sets context.
-- Include clearly labeled sections with the following headings:
-   1. Positive Impacts
-   2. Negative Impacts
-   3. Conclusion
-- Support each point with theoretical explanations, examples, and (where appropriate) references to real-world events, studies, or data.
-- Avoid overly simplistic language or generic claims—focus on depth, insight, and clarity.
-- Format the output as a newspaper-style article: no excessive newlines, use clean paragraph structure, and avoid bulleted formatting unless listing complex theories or categories.
-- Ensure coherence between sections and end with a strong concluding insight or call to action.
+Requirements:
+- Length: Minimum 1200 words (comprehensive and well-developed).
+- Tone: Formal, informative, and analytical, suitable for an educated audience (tech professionals, researchers, policymakers).
+- Style: Editorial or research-backed essay, similar to a published newspaper opinion piece or policy journal.
+- Structure:
+   <h2>Introduction</h2>
+   <h2>Positive Impacts</h2>
+   <h2>Negative Impacts</h2>
+   <h2>Conclusion</h2>
+- Content depth:
+   • Support claims with established theories, scholarly concepts, or models (e.g., Schumpeter’s Creative Destruction, Human Capital Theory, Network Society).
+   • Provide real-world examples, case studies, or relevant data.
+   • Avoid vague or generic statements; prioritize clarity, insight, and intellectual rigor.
+- Formatting:
+   • Return output in clean HTML with <h2> for section headings, <p> for paragraphs.
+   • Use <ul><li> only when presenting theories, frameworks, or categorized lists.
+   • Ensure readability and a professional newspaper-style layout.
+- Coherence: Ensure smooth transitions between sections for logical flow and consistency.
+- Conclusion: End with a strong, reflective insight or call to action highlighting the broader significance of the topic.
 `;
 
     const result = await model.generateContent([detailedPrompt]);

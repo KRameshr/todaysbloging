@@ -8,6 +8,8 @@ import {
   getBlogById,
   getBlogComment,
   togglePublish,
+  getLatestArticles,
+  generateResources,
 } from "../controllers/blogController.js";
 import upload from "../middleware/multer.js";
 import auth from "../middleware/auth.js";
@@ -22,5 +24,9 @@ blogRouter.post("/toggle-publish", auth, togglePublish);
 blogRouter.post("/add-comment", addComment);
 blogRouter.post("/comments", getBlogComment);
 blogRouter.post("/generate", auth, generateContent);
+blogRouter.get("/latest/articles", getLatestArticles);
+
+// Protected if needed
+blogRouter.post("/generate-resources", auth, generateResources);
 
 export default blogRouter;
