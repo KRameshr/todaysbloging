@@ -1,36 +1,42 @@
+// api/index.js
 import serverless from "serverless-http";
 import app from "../app.js";
-import connectDB from "../configs/db.js";
+import mongoose from "mongoose";
 
 // -----------------------------------
-// 1️⃣ Connect DB on cold start (non-blocking)
+// 1️⃣ Lazy MongoDB connection (cold start)
 let isConnected = false;
-connectDB()
-  .then(() => {
-    console.log("MongoDB connected ✅");
+
+async function connectDBOnce() {
+  if (isConnected) return;
+
+  try {
+    await mongoose.connect(`${process.env.MONGOOB_URI}/todaysblog`);
     isConnected = true;
-  })
-  .catch((err) => {
-    console.error("MongoDB connection error ❌", err);
-  });
+    console.log("✅ MongoDB connected");
+  } catch (err) {
+    console.error("❌ MongoDB connection failed", err.message);
+  }
+}
 
 // -----------------------------------
 // 2️⃣ Middleware to ensure DB connection
-// Place this **before all routes** but **after app creation**
 app.use(async (req, res, next) => {
   if (!isConnected) {
-    console.warn("⚠️ MongoDB not ready yet, request may fail");
+    console.log("🌐 Connecting to MongoDB...");
+    await connectDBOnce();
   }
   next();
 });
 
 // -----------------------------------
 // 3️⃣ Routes
-app.get("/", (req, res) => res.send("API is working 🚀"));
 import adminRouter from "../routes/adminRoutes.js";
 import blogRouter from "../routes/blogRoutes.js";
 import newsletterRouter from "../routes/newsletterRoute.js";
 import contactRouter from "../routes/contactRoutes.js";
+
+app.get("/", (req, res) => res.send("API is working 🚀"));
 
 app.use("/api/contact", contactRouter);
 app.use("/api/admin", adminRouter);
