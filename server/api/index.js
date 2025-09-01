@@ -4,27 +4,38 @@ import app from "../app.js";
 import mongoose from "mongoose";
 
 // -----------------------------------
-// 1️⃣ Lazy MongoDB connection (cold start)
+// 1️⃣ Cached MongoDB connection (cold start)
 let isConnected = false;
 
 async function connectDBOnce() {
   if (isConnected) return;
 
   try {
-    await mongoose.connect(`${process.env.MONGOOB_URI}/todaysblog`);
+    await mongoose.connect(process.env.MONGOOB_URI, {
+      dbName: "todaysblog", // optional, specify your DB
+      useNewUrlParser: true,
+      useUnifiedTopology: true,
+    });
     isConnected = true;
     console.log("✅ MongoDB connected");
   } catch (err) {
-    console.error("❌ MongoDB connection failed", err.message);
+    console.error("❌ MongoDB connection failed:", err.message);
+    throw err; // propagate error
   }
 }
 
 // -----------------------------------
-// 2️⃣ Middleware to ensure DB connection
+// 2️⃣ Middleware to ensure DB connection before handling requests
 app.use(async (req, res, next) => {
   if (!isConnected) {
     console.log("🌐 Connecting to MongoDB...");
-    await connectDBOnce();
+    try {
+      await connectDBOnce();
+    } catch (err) {
+      return res
+        .status(500)
+        .json({ success: false, message: "DB connection failed" });
+    }
   }
   next();
 });
