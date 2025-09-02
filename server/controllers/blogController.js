@@ -517,14 +517,13 @@
 //   })();
 // };
 
-// blogController.js
-import fs from "fs/promises";
-import imagekit from "../configs/imageKit.js";
 import Blog from "../models/Blog.js";
 import Comment from "../models/Comment.js";
+import imagekit from "../configs/imageKit.js";
+import fetch from "node-fetch";
+import main from "../configs/gemini.js";
 
-// ----------------------------
-// 1️⃣ Add Blog
+// Add a new blog
 export const addBlog = async (req, res) => {
   try {
     const { title, subTitle, description, category, isPublished } = JSON.parse(
@@ -538,16 +537,23 @@ export const addBlog = async (req, res) => {
         .json({ success: false, message: "Missing required fields" });
     }
 
-    const fileBuffer = await fs.readFile(imageFile.path);
-
-    const response = await imagekit.upload({
-      file: fileBuffer,
-      fileName: imageFile.originalname,
-      folder: "/blogs",
-    });
+    // Upload image to ImageKit
+    let uploadResponse;
+    try {
+      uploadResponse = await imagekit.upload({
+        file: imageFile.buffer,
+        fileName: imageFile.originalname,
+        folder: "/blogs",
+      });
+    } catch (err) {
+      console.error("❌ ImageKit upload failed:", err.message);
+      return res
+        .status(500)
+        .json({ success: false, message: "Image upload failed" });
+    }
 
     const optimizedImageUrl = imagekit.url({
-      path: response.filePath,
+      path: uploadResponse.filePath,
       transformation: [
         { quality: "auto" },
         { format: "webp" },
@@ -567,64 +573,63 @@ export const addBlog = async (req, res) => {
     res
       .status(201)
       .json({ success: true, message: "Blog added successfully", blog });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ success: false, message: err.message });
+  } catch (error) {
+    console.error("❌ addBlog error:", error.message);
+    res.status(500).json({ success: false, message: error.message });
   }
 };
 
-// ----------------------------
-// 2️⃣ Get all published blogs
+// Get all published blogs
 export const getAllBlogs = async (req, res) => {
   try {
     const blogs = await Blog.find({ isPublished: true }).sort({
       createdAt: -1,
     });
     res.json({ success: true, blogs });
-  } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
   }
 };
 
-// ----------------------------
-// 3️⃣ Get Blog by ID
+// Get blog by ID
 export const getBlogById = async (req, res) => {
   try {
-    const blog = await Blog.findById(req.params.blogId);
+    const { blogId } = req.params;
+    const blog = await Blog.findById(blogId);
     if (!blog)
       return res
         .status(404)
         .json({ success: false, message: "Blog not found" });
     res.json({ success: true, blog });
-  } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
   }
 };
 
-// ----------------------------
-// 4️⃣ Delete Blog
+// Delete blog
 export const deleteBlogById = async (req, res) => {
   try {
-    const blog = await Blog.findById(req.body.id);
+    const { id } = req.body;
+    const blog = await Blog.findById(id);
     if (!blog)
       return res
         .status(404)
         .json({ success: false, message: "Blog not found" });
 
     await blog.deleteOne();
-    await Comment.deleteMany({ blog: req.body.id });
+    await Comment.deleteMany({ blog: id });
 
     res.json({ success: true, message: "Blog deleted successfully" });
-  } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
   }
 };
 
-// ----------------------------
-// 5️⃣ Toggle Publish
+// Toggle blog publish status
 export const togglePublish = async (req, res) => {
   try {
-    const blog = await Blog.findById(req.body.id);
+    const { id } = req.body;
+    const blog = await Blog.findById(id);
     if (!blog)
       return res
         .status(404)
@@ -633,67 +638,59 @@ export const togglePublish = async (req, res) => {
     blog.isPublished = !blog.isPublished;
     await blog.save();
 
-    res.json({
-      success: true,
-      message: "Blog status updated",
-      isPublished: blog.isPublished,
-    });
-  } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+    res.json({ success: true, message: "Blog status updated" });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
   }
 };
 
-// ----------------------------
-// 6️⃣ Add Comment
+// Add comment
 export const addComment = async (req, res) => {
   try {
     const { blog, name, content } = req.body;
     await Comment.create({ blog, name, content });
     res.json({ success: true, message: "Comment added for review" });
-  } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
   }
 };
 
-// ----------------------------
-// 7️⃣ Get approved comments
+// Get comments for a blog
 export const getBlogComment = async (req, res) => {
   try {
+    const { blogId } = req.body;
     const comments = await Comment.find({
-      blog: req.body.blogId,
+      blog: blogId,
       isApproved: true,
     }).sort({ createdAt: -1 });
     res.json({ success: true, comments });
-  } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
   }
 };
 
-// ----------------------------
-// 8️⃣ AI Generation (placeholder)
-// Instead of waiting for AI, return a queued job ID or placeholder
+// Generate AI blog content
 export const generateContent = async (req, res) => {
-  // For Vercel, just respond immediately
-  res
-    .status(202)
-    .json({
-      success: true,
-      message: "Content generation started. Use background worker to complete.",
-    });
+  try {
+    const { prompt } = req.body;
+    if (!prompt)
+      return res
+        .status(400)
+        .json({ success: false, message: "Prompt is required" });
+
+    const content = await main(prompt);
+    if (content.includes("AI generation failed")) {
+      return res.status(500).json({ success: false, message: content });
+    }
+
+    res.status(200).json({ success: true, content });
+  } catch (error) {
+    console.error("❌ generateContent error:", error.message);
+    res.status(500).json({ success: false, message: "Internal Server Error" });
+  }
 };
 
-export const generateResources = async (req, res) => {
-  res
-    .status(202)
-    .json({
-      success: true,
-      message:
-        "Resource generation started. Use background worker to complete.",
-    });
-};
-
-// ----------------------------
-// 9️⃣ Latest Articles
+// Get latest 5 published blogs
 export const getLatestArticles = async (req, res) => {
   try {
     const blogs = await Blog.find({ isPublished: true })
@@ -701,7 +698,61 @@ export const getLatestArticles = async (req, res) => {
       .limit(5)
       .select("title category createdAt");
     res.json({ success: true, blogs });
-  } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// Generate external resources (Hugging Face)
+export const generateResources = async (req, res) => {
+  try {
+    const { title, description } = req.body;
+    if (!title || !description) {
+      return res
+        .status(400)
+        .json({
+          success: false,
+          message: "Blog title and description required",
+        });
+    }
+
+    const prompt = `
+      Suggest 5 high-quality external resources (JSON array) for this blog:
+      Title: "${title}"
+      Content: "${description}"
+    `;
+
+    const response = await fetch(
+      "https://api-inference.huggingface.co/models/mistralai/Mistral-7B-Instruct-v0.2",
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${process.env.HF_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ inputs: prompt }),
+      }
+    );
+
+    if (!response.ok) throw new Error(`HF API error: ${response.statusText}`);
+    const data = await response.json();
+
+    let resources = [];
+    try {
+      const text =
+        data[0]?.generated_text || data.generated_text || JSON.stringify(data);
+      const jsonMatch = text.match(/\[.*\]/s);
+      if (jsonMatch) resources = JSON.parse(jsonMatch[0]);
+    } catch {
+      resources = [
+        { title: "MDN Web Docs", url: "https://developer.mozilla.org/" },
+        { title: "W3Schools", url: "https://www.w3schools.com/" },
+      ];
+    }
+
+    res.status(200).json({ success: true, resources });
+  } catch (error) {
+    console.error("❌ generateResources error:", error.message);
+    res.status(500).json({ success: false, message: error.message });
   }
 };
