@@ -3,16 +3,15 @@ import serverless from "serverless-http";
 import app from "../app.js";
 import mongoose from "mongoose";
 
-// -----------------------------------
-// 1️⃣ Cached MongoDB connection (cold start)
+// -------------------------
+// 1️⃣ Cached MongoDB connection
 let isConnected = false;
 
 async function connectDBOnce() {
   if (isConnected) return;
-
   try {
     await mongoose.connect(process.env.MONGOOB_URI, {
-      dbName: "todaysblog", // optional, specify your DB
+      dbName: "todaysblog",
       useNewUrlParser: true,
       useUnifiedTopology: true,
     });
@@ -20,11 +19,11 @@ async function connectDBOnce() {
     console.log("✅ MongoDB connected");
   } catch (err) {
     console.error("❌ MongoDB connection failed:", err.message);
-    throw err; // propagate error
+    throw err;
   }
 }
 
-// -----------------------------------
+// -------------------------
 // 2️⃣ Middleware to ensure DB connection before handling requests
 app.use(async (req, res, next) => {
   if (!isConnected) {
@@ -40,7 +39,7 @@ app.use(async (req, res, next) => {
   next();
 });
 
-// -----------------------------------
+// -------------------------
 // 3️⃣ Routes
 import adminRouter from "../routes/adminRoutes.js";
 import blogRouter from "../routes/blogRoutes.js";
@@ -54,6 +53,6 @@ app.use("/api/admin", adminRouter);
 app.use("/api/blog", blogRouter);
 app.use("/api/newsletter", newsletterRouter);
 
-// -----------------------------------
+// -------------------------
 // 4️⃣ Export serverless handler
 export default serverless(app);
