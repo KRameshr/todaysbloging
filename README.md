@@ -1,4 +1,4 @@
-#  full-stack blogging platform
+#  Full-Stack Blogging Platform
 
 A **full-stack blogging platform** built using the **MERN stack (MongoDB, Express.js, React, Node.js)**.  
 
