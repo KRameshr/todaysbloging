@@ -1,4 +1,4 @@
-#  Today Blog  
+#  full-stack blogging platform
 
 A **full-stack blogging platform** built using the **MERN stack (MongoDB, Express.js, React, Node.js)**.  
 
